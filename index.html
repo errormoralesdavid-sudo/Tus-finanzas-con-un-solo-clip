@@ -28,7 +28,7 @@
   </header>
 
   <main class="content">
-    <!-- Balance Principal -->
+    <!-- Balance Principal Operativo -->
     <section class="card balance-card glass">
       <h2>Balance Total Operativo</h2>
       <div class="total-amount" id="total-balance">$0.00</div>
@@ -52,29 +52,40 @@
       </div>
     </section>
 
-    <!-- Planificador de Cobro Dinámico -->
+    <!-- Planificador Interactivo: Toca cada tarjeta para editar -->
     <section class="card planner-section glass">
       <div class="section-header">
-        <h3 id="planner-title">📅 Planificador de Cobro</h3>
-        <button id="btn-config-pay" class="btn-sm glass">⚙️ Configurar</button>
+        <h3>📅 Compromisos y Asignaciones</h3>
+        <span class="subtitle">Toca cualquier casilla para editar monto y fecha</span>
       </div>
-      <p class="subtitle" id="planner-subtitle">Desglose de tu próximo cobro:</p>
+      
       <div id="envelope-container" class="envelope-grid">
-        <div class="envelope-card glass">
+        <div class="envelope-card glass clickable" onclick="openBoxModal('Alquiler', '🏠 Alquiler')">
           <span>🏠 Alquiler</span>
           <strong id="env-rent">$0.00</strong>
+          <small id="date-rent" class="due-tag">Sin fecha</small>
         </div>
-        <div class="envelope-card glass">
+
+        <div class="envelope-card glass clickable" onclick="openBoxModal('Comida', '🛒 Comida')">
           <span>🛒 Comida</span>
           <strong id="env-food">$0.00</strong>
+          <small id="date-food" class="due-tag">Sin fecha</small>
         </div>
-        <div class="envelope-card glass">
-          <span>💡 Servicios</span>
+
+        <div class="envelope-card glass clickable" onclick="openBoxModal('Servicios', '💡 Servicios')">
+          <span>💡 Servicios (Gas/Internet)</span>
           <strong id="env-services">$0.00</strong>
+          <small id="date-services" class="due-tag">Sin fecha</small>
         </div>
-        <div class="envelope-card glass highlight">
-          <span>🪙 Binance USDT (Ahorro)</span>
-          <strong id="env-crypto">$0.00</strong>
+
+        <!-- Caja de Ahorro con Modo Oculto -->
+        <div class="envelope-card glass highlight clickable" onclick="toggleSavingsMask()">
+          <div class="savings-header">
+            <span>🪙 Binance USDT (Ahorro)</span>
+            <button class="btn-eye" id="btn-toggle-eye">👁️</button>
+          </div>
+          <strong id="env-crypto">****</strong>
+          <small class="due-tag">Toque para ver/ocultar</small>
         </div>
       </div>
     </section>
@@ -88,7 +99,7 @@
       <div class="pair-controls">
         <div class="code-box glass">
           <span>Tu Código:</span>
-          <strong id="my-pair-code">Generando...</strong>
+          <strong id="my-pair-code">Cargando...</strong>
         </div>
         <div class="input-group">
           <input type="text" id="partner-code-input" placeholder="Código de pareja">
@@ -105,9 +116,9 @@
       </div>
     </section>
 
-    <!-- Historial de Movimientos -->
+    <!-- Historial y Cuotas -->
     <section class="card movements-section glass">
-      <h3>📜 Historial y Compromisos</h3>
+      <h3>📜 Historial, Cuotas y Compromisos</h3>
       <ul id="movements-list" class="movements-list">
         <!-- Cargado dinámicamente -->
       </ul>
@@ -116,36 +127,28 @@
 
   <button class="fab btn-glow" id="btn-open-modal">+</button>
 
-  <!-- Modal Configuración de Cobro (Tuerquita ⚙️) -->
-  <div class="modal" id="modal-config">
+  <!-- Modal para Configurar Casilla Individual (Tocar Tarjeta) -->
+  <div class="modal" id="modal-box-edit">
     <div class="modal-content glass">
       <div class="modal-header">
-        <h3>⚙️ Configurar Cobro y Presupuesto</h3>
-        <button id="btn-close-config" class="btn-close">&times;</button>
+        <h3 id="box-edit-title">Editar Asignación</h3>
+        <button id="btn-close-box-modal" class="btn-close">&times;</button>
       </div>
-      <form id="form-config">
-        <label>Fecha del próximo cobro:</label>
-        <input type="date" id="config-pay-date" required>
+      <form id="form-box-edit">
+        <input type="hidden" id="box-key">
+        
+        <label>Monto asignado ($):</label>
+        <input type="number" step="0.01" id="box-amount" placeholder="Ej: 130.00" required>
 
-        <label>Monto estimado de cobro ($):</label>
-        <input type="number" step="0.01" id="config-pay-amount" placeholder="Ej. 100.00" required>
+        <label>Fecha límite de pago / vencimiento:</label>
+        <input type="date" id="box-date" required>
 
-        <p class="subtitle" style="margin-top:10px;">Distribución deseada (%):</p>
-        <div class="form-row">
-          <input type="number" id="perc-rent" placeholder="% Alquiler" value="30">
-          <input type="number" id="perc-food" placeholder="% Comida" value="35">
-        </div>
-        <div class="form-row">
-          <input type="number" id="perc-services" placeholder="% Servicios" value="15">
-          <input type="number" id="perc-crypto" placeholder="% Ahorro" value="20">
-        </div>
-
-        <button type="submit" class="btn-primary btn-glow" style="margin-top:12px;">Guardar Configuración</button>
+        <button type="submit" class="btn-primary btn-glow" style="margin-top:12px;">Guardar Asignación</button>
       </form>
     </div>
   </div>
 
-  <!-- Modal Nuevo Movimiento -->
+  <!-- Modal Nuevo Movimiento / Cuotas (Cashea, Crece, Deudas, etc.) -->
   <div class="modal" id="modal-movement">
     <div class="modal-content glass">
       <div class="modal-header">
@@ -170,11 +173,21 @@
           <div class="converted-preview" id="converted-preview">≈ $0.00 USD</div>
         </div>
 
-        <input type="text" id="concept" placeholder="Concepto (ej. Alquiler, Gas, Barbero, Sueldo)" required>
+        <input type="text" id="concept" placeholder="Concepto (ej. Alquiler, Gas, TV Cashea, Préstamo Crece)" required>
         
-        <select id="category">
+        <select id="category" onchange="checkSpecialCategory()">
           <!-- Inyectado vía JS -->
         </select>
+
+        <!-- Opciones de Financiamiento (Cashea / Crece / Préstamos) -->
+        <div id="credit-options" style="display: none;" class="glass credit-box">
+          <label>Planes de Cuotas / Financiamiento:</label>
+          <div class="form-row">
+            <input type="number" step="0.01" id="down-payment" placeholder="Inicial ($) [Cashea]">
+            <input type="number" id="installments-count" placeholder="N° Cuotas (ej. 2, 6, 9, 12)">
+          </div>
+          <input type="number" step="0.01" id="total-repay" placeholder="Monto total a devolver ($) [Crece]">
+        </div>
 
         <div id="expense-extra-fields">
           <div class="form-row">
