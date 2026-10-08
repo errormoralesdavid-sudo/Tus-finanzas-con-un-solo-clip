@@ -11,30 +11,60 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-let bcvRate = 36.50; // Valor fallback
+let bcvRate = 36.50; // Fallback
 let currentType = 'expense';
 let currentCurrency = 'VES';
 let expensesChart = null;
 
-// Inicialización
+// Categorías según Tipo
+const categoriesExpense = [
+  { val: 'Alquiler', label: '🏠 Alquiler / Vivienda' },
+  { val: 'Comida', label: '🛒 Comida / Mercado' },
+  { val: 'Servicios-Gas', label: '🔥 Servicio: Gas' },
+  { val: 'Servicios-Internet', label: '🌐 Servicio: Internet' },
+  { val: 'Servicios-LuzAgua', label: '💡 Servicio: Luz / Agua' },
+  { val: 'Transporte', label: '🚌 Transporte / Gasolina' },
+  { val: 'Ocio', label: '🎉 Ocio / Salidas' },
+  { val: 'Otros', label: '📦 Otros' }
+];
+
+const categoriesIncome = [
+  { val: 'Sueldo-Trabajo', label: '💼 Sueldo / Trabajo' },
+  { val: 'Servicio-Barberia', label: '💈 Servicio / Barbería' },
+  { val: 'Venta', label: '🏷️ Venta de Producto' },
+  { val: 'Otros-Ingresos', label: '💰 Otros Ingresos' }
+];
+
 document.addEventListener('DOMContentLoaded', () => {
   fetchBCVRate();
   initChart();
+  updateCategoryDropdown();
   listenMovementsRealtime();
 });
 
-// Obtener Tasa de Dólar Venezuela en tiempo real
+// API Dólar Venezuela Robusta con Fallbacks
 async function fetchBCVRate() {
-  try {
-    const res = await fetch('https://rates.dolarvzla.com/bcv/current.json');
-    const data = await res.json();
-    if (data && data.price) {
-      bcvRate = parseFloat(data.price);
-      document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
+  const apis = [
+    'https://pydolarve.org/api/v1/dollar?page=bcv',
+    'https://rates.dolarvzla.com/bcv/current.json',
+    'https://ve.dolarapi.com/v1/dolares/oficial'
+  ];
+
+  for (let url of apis) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      let rate = data.price || data.promedio || (data.moneda && data.moneda.bcv);
+      if (rate) {
+        bcvRate = parseFloat(rate);
+        document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
+        return;
+      }
+    } catch (e) {
+      console.warn('Cargando respaldo de API dólar...');
     }
-  } catch (e) {
-    document.getElementById('bcv-rate').innerText = `36.50 Bs.`;
   }
+  document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
 }
 
 // Modal Toggle
@@ -48,6 +78,12 @@ document.querySelectorAll('.btn-type').forEach(btn => {
     document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('active'));
     e.target.classList.add('active');
     currentType = e.target.dataset.type;
+    
+    // Mostrar/Ocultar campos exclusivos de gasto
+    const extraFields = document.getElementById('expense-extra-fields');
+    extraFields.style.display = currentType === 'expense' ? 'block' : 'none';
+
+    updateCategoryDropdown();
   };
 });
 
@@ -60,7 +96,19 @@ document.querySelectorAll('.btn-curr').forEach(btn => {
   };
 });
 
-// Conversión instantánea al escribir
+function updateCategoryDropdown() {
+  const catSelect = document.getElementById('category');
+  catSelect.innerHTML = '';
+  const list = currentType === 'expense' ? categoriesExpense : categoriesIncome;
+  list.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.val;
+    opt.innerText = c.label;
+    catSelect.appendChild(opt);
+  });
+}
+
+// Conversión dinámica
 document.getElementById('amount').oninput = updateConvertedPreview;
 
 function updateConvertedPreview() {
@@ -75,10 +123,9 @@ function updateConvertedPreview() {
   }
 }
 
-// Escuchar cambios en vivo con Firebase
+// Escuchar Firebase en tiempo real
 function listenMovementsRealtime() {
   db.collection('movements').orderBy('date', 'desc').onSnapshot(snapshot => {
-    const movements = [];
     let totalInc = 0;
     let totalExp = 0;
     const catTotals = {};
@@ -88,8 +135,6 @@ function listenMovementsRealtime() {
 
     snapshot.forEach(doc => {
       const item = doc.data();
-      movements.push(item);
-
       const amountUSD = item.currency === 'VES' ? (item.amount / bcvRate) : item.amount;
 
       if (item.type === 'income') {
@@ -99,12 +144,24 @@ function listenMovementsRealtime() {
         catTotals[item.category] = (catTotals[item.category] || 0) + amountUSD;
       }
 
-      // Render fila con animación
+      // Formato seguro de Fecha (Corrige 'undefined')
+      let dateFormatted = 'Hoy';
+      if (item.date && item.date.toDate) {
+        dateFormatted = item.date.toDate().toLocaleDateString('es-VE');
+      }
+
+      // Render ítem
       const li = document.createElement('li');
+      const statusBadge = item.type === 'expense' 
+        ? `<span class="badge-status status-${(item.status || 'pagado').toLowerCase()}">${item.status || 'Pagado'}</span>` 
+        : '';
+
       li.innerHTML = `
         <div>
-          <strong>${item.concept}</strong>
-          <p style="font-size:0.75rem; color:#94a3b8;">${item.category} • ${new Date(item.date?.toDate()).toLocaleDateString()}</p>
+          <strong>${item.concept || 'Movimiento'} ${statusBadge}</strong>
+          <p style="font-size:0.75rem; color:#94a3b8;">
+            ${item.category || 'General'} • ${dateFormatted} ${item.paidBy ? '• (' + item.paidBy + ')' : ''}
+          </p>
         </div>
         <div style="text-align:right;">
           <strong style="color:${item.type === 'income' ? '#10b981' : '#ef4444'}">
@@ -116,14 +173,19 @@ function listenMovementsRealtime() {
       listEl.appendChild(li);
     });
 
-    // Actualizar saldos principales
+    // Saldos generales
     const balanceUSD = totalInc - totalExp;
     document.getElementById('total-balance').innerText = `$${balanceUSD.toFixed(2)}`;
     document.getElementById('total-balance-ves').innerText = `≈ ${(balanceUSD * bcvRate).toFixed(2)} Bs.`;
     document.getElementById('total-income').innerText = `$${totalInc.toFixed(2)}`;
     document.getElementById('total-expense').innerText = `$${totalExp.toFixed(2)}`;
 
-    // Actualizar gráfico
+    // Sobres Digitales de Cobro (Cálculo Estimado)
+    document.getElementById('env-rent').innerText = `$${(totalInc * 0.30).toFixed(2)}`;
+    document.getElementById('env-food').innerText = `$${(totalInc * 0.35).toFixed(2)}`;
+    document.getElementById('env-services').innerText = `$${(totalInc * 0.15).toFixed(2)}`;
+    document.getElementById('env-crypto').innerText = `$${(totalInc * 0.20).toFixed(2)}`;
+
     updateChart(catTotals);
   });
 }
@@ -136,12 +198,20 @@ document.getElementById('form-movement').onsubmit = async (e) => {
   const category = document.getElementById('category').value;
   const fileInput = document.getElementById('receipt-image');
 
+  const paidBy = document.getElementById('paid-by').value;
+  const status = document.getElementById('payment-status').value;
+  const dueDate = document.getElementById('due-date').value;
+
   let imageUrl = '';
   if (fileInput.files.length > 0) {
-    const file = fileInput.files[0];
-    const storageRef = storage.ref(`receipts/${Date.now()}_${file.name}`);
-    const snapshot = await storageRef.put(file);
-    imageUrl = await snapshot.ref.getDownloadURL();
+    try {
+      const file = fileInput.files[0];
+      const storageRef = storage.ref(`receipts/${Date.now()}_${file.name}`);
+      const snapshot = await storageRef.put(file);
+      imageUrl = await snapshot.ref.getDownloadURL();
+    } catch (err) {
+      console.error("Error al subir imagen:", err);
+    }
   }
 
   await db.collection('movements').add({
@@ -150,6 +220,9 @@ document.getElementById('form-movement').onsubmit = async (e) => {
     concept,
     category,
     type: currentType,
+    paidBy: currentType === 'expense' ? paidBy : null,
+    status: currentType === 'expense' ? status : null,
+    dueDate: dueDate || null,
     imageUrl,
     date: new Date()
   });
@@ -158,7 +231,7 @@ document.getElementById('form-movement').onsubmit = async (e) => {
   modal.classList.remove('active');
 };
 
-// Gráfico Interactivo Chart.js
+// Gráficos Animados Chart.js
 function initChart() {
   const ctx = document.getElementById('expensesChart').getContext('2d');
   expensesChart = new Chart(ctx, {
@@ -167,7 +240,7 @@ function initChart() {
       labels: [],
       datasets: [{
         data: [],
-        backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+        backgroundColor: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6'],
         borderWidth: 0
       }]
     },
