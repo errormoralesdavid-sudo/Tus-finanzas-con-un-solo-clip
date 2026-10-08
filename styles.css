@@ -104,12 +104,27 @@ body {
 .income-box .icon { color: var(--success); }
 .expense-box .icon { color: var(--danger); }
 
-.section-header { display: flex; justify-content: space-between; align-items: center; }
-.subtitle { font-size: 0.8rem; color: #94a3b8; margin: 6px 0 12px 0; }
-.envelope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.envelope-card { padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; }
+.subtitle { font-size: 0.8rem; color: #94a3b8; display: block; margin-top: 4px; }
+.envelope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+
+.envelope-card {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.envelope-card.clickable { cursor: pointer; }
+.envelope-card.clickable:active { transform: scale(0.97); border-color: var(--primary); }
+
 .envelope-card.highlight { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
 .envelope-card strong { font-size: 1.1rem; color: #f8fafc; }
+
+.due-tag { font-size: 0.7rem; color: #94a3b8; }
+.savings-header { display: flex; justify-content: space-between; align-items: center; }
+.btn-eye { background: none; border: none; font-size: 1rem; cursor: pointer; }
 
 .pair-controls { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .code-box { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -123,7 +138,6 @@ input, select {
 }
 
 button { cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px; font-weight: 700; }
-.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
 .btn-glow { background: linear-gradient(135deg, var(--primary), #ec4899); color: white; box-shadow: 0 4px 20px var(--primary-glow); }
 
 .fab { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 50%; font-size: 2rem; z-index: 99; }
@@ -134,7 +148,7 @@ button { cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px;
   padding: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.03);
 }
 
-.item-actions { display: flex; align-items: center; gap: 6px; }
+.item-actions { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .btn-action { padding: 4px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
 .btn-pay { background: var(--success); color: white; }
 .btn-delete { background: var(--danger); color: white; }
@@ -145,6 +159,8 @@ button { cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px;
 .status-pagado { background: rgba(16, 185, 129, 0.2); color: #10b981; }
 .status-parcial { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 .status-pendiente { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.credit-box { padding: 12px; margin: 6px 0; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 1000; }
 .modal.active { display: flex; }
