@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanzas Duo App</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+</head>
+<body>
+
+  <header class="top-bar">
+    <h1>Finanzas Duo</h1>
+    <div id="user-status">Conectando...</div>
+  </header>
+
+  <main class="content">
+    <!-- Panel Resumen -->
+    <section class="card balance-card">
+      <h2>Balance Total</h2>
+      <div class="total-amount" id="total-balance">$0.00</div>
+      <div class="balance-details">
+        <div class="income">▲ Ingresos: <span id="total-income">$0.00</span></div>
+        <div class="expense">▼ Gastos: <span id="total-expense">$0.00</span></div>
+      </div>
+    </section>
+
+    <!-- Sección Modo Pareja -->
+    <section class="card pair-section">
+      <h3>Sincronización en Pareja</h3>
+      <p>Comparte tu código o ingresa el de tu pareja para vincular finanzas.</p>
+      <div class="pair-controls">
+        <div class="code-box">
+          <span>Tu Código:</span>
+          <strong id="my-pair-code">------</strong>
+        </div>
+        <div class="input-group">
+          <input type="text" id="partner-code-input" placeholder="Código de pareja">
+          <button id="btn-link-partner">Vincular</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lista de Movimientos -->
+    <section class="card movements-section">
+      <h3>Últimos Movimientos</h3>
+      <ul id="movements-list" class="movements-list">
+        <!-- Se cargan dinámicamente -->
+      </ul>
+    </section>
+  </main>
+
+  <!-- Botón Flotante para Agregar -->
+  <button class="fab" id="btn-open-modal">+</button>
+
+  <!-- Modal Nuevo Movimiento -->
+  <div class="modal" id="modal-movement">
+    <div class="modal-content card">
+      <h3>Nuevo Movimiento</h3>
+      <form id="form-movement">
+        <div class="type-selector">
+          <button type="button" class="btn-type active" data-type="expense">Gasto</button>
+          <button type="button" class="btn-type" data-type="income">Ingreso</button>
+        </div>
+        
+        <input type="number" step="0.01" id="amount" placeholder="Monto" required>
+        <input type="text" id="concept" placeholder="Concepto (ej. Compras super)" required>
+        
+        <select id="category">
+          <option value="Comida">Comida</option>
+          <option value="Servicios">Servicios</option>
+          <option value="Transporte">Transporte</option>
+          <option value="Ocio">Ocio</option>
+          <option value="Otros">Otros</option>
+        </select>
+
+        <label for="receipt-image" class="file-label">Adjuntar Imagen / Comprobante</label>
+        <input type="file" id="receipt-image" accept="image/*">
+
+        <div class="modal-actions">
+          <button type="button" id="btn-close-modal" class="btn-secondary">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
