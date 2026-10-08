@@ -17,15 +17,8 @@ let currentType = 'expense';
 let currentCurrency = 'VES';
 let expensesChart = null;
 
-let userCode = '';
-let configData = {
-  payDate: '',
-  amount: 0,
-  pRent: 30,
-  pFood: 35,
-  pServices: 15,
-  pCrypto: 20
-};
+let isSavingsMasked = true;
+let realSavingsVal = 0;
 
 const categoriesExpense = [
   { val: 'Alquiler', label: '🏠 Alquiler / Vivienda' },
@@ -33,14 +26,17 @@ const categoriesExpense = [
   { val: 'Servicios-Gas', label: '🔥 Servicio: Gas' },
   { val: 'Servicios-Internet', label: '🌐 Servicio: Internet' },
   { val: 'Servicios-LuzAgua', label: '💡 Servicio: Luz / Agua' },
-  { val: 'Transporte', label: '🚌 Transporte / Gasolina' },
-  { val: 'Ocio', label: '🎉 Ocio / Salidas' },
-  { val: 'Otros', label: '📦 Otros' }
+  { val: 'Cashea', label: '🟡 Cashea (Cuotas)' },
+  { val: 'Crece', label: '🟢 Crece (Préstamo)' },
+  { val: 'Deuda-Persona', label: '🤝 Deuda a Persona / Préstamo' },
+  { val: 'Ahorro-Deposit', label: '🪙 Depósito a Binance USDT' },
+  { val: 'Otros', label: '📦 Otros Gastos' }
 ];
 
 const categoriesIncome = [
   { val: 'Sueldo-Trabajo', label: '💼 Sueldo / Trabajo' },
   { val: 'Servicio-Barberia', label: '💈 Servicio / Barbería' },
+  { val: 'Prestamo-Recibido', label: '📥 Préstamo Recibido' },
   { val: 'Venta', label: '🏷️ Venta de Producto' },
   { val: 'Otros-Ingresos', label: '💰 Otros Ingresos' }
 ];
@@ -51,21 +47,21 @@ document.addEventListener('DOMContentLoaded', () => {
   initChart();
   updateCategoryDropdown();
   listenMovementsRealtime();
-  loadConfig();
+  loadBoxData();
 });
 
-// Autenticación anónima para generar Código Único de Pareja
+// Autenticación anónima para código único real
 function initAuthAndPairCode() {
   auth.signInAnonymously().then(res => {
-    userCode = res.user.uid.substring(0, 6).toUpperCase();
-    document.getElementById('my-pair-code').innerText = userCode;
+    const code = res.user.uid.substring(0, 6).toUpperCase();
+    document.getElementById('my-pair-code').innerText = code;
   }).catch(err => {
-    console.error("Error Auth:", err);
+    console.error("Auth error:", err);
     document.getElementById('my-pair-code').innerText = "DUO888";
   });
 }
 
-// API Dólar Venezuela
+// Tasa BCV Robusta
 async function fetchBCVRate() {
   const apis = [
     'https://pydolarve.org/api/v1/dollar?page=bcv',
@@ -90,17 +86,72 @@ async function fetchBCVRate() {
   document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
 }
 
-// Control Modales
+// Modales
 const modal = document.getElementById('modal-movement');
-const modalConfig = document.getElementById('modal-config');
+const modalBox = document.getElementById('modal-box-edit');
 
 document.getElementById('btn-open-modal').onclick = () => modal.classList.add('active');
 document.getElementById('btn-close-modal').onclick = () => modal.classList.remove('active');
+document.getElementById('btn-close-box-modal').onclick = () => modalBox.classList.remove('active');
 
-document.getElementById('btn-config-pay').onclick = () => modalConfig.classList.add('active');
-document.getElementById('btn-close-config').onclick = () => modalConfig.classList.remove('active');
+// Tocar tarjetas para editar directo
+function openBoxModal(key, title) {
+  document.getElementById('box-key').value = key;
+  document.getElementById('box-edit-title').innerText = `Editar: ${title}`;
+  
+  const saved = JSON.parse(localStorage.getItem(`box_${key}`) || '{}');
+  document.getElementById('box-amount').value = saved.amount || '';
+  document.getElementById('box-date').value = saved.date || '';
 
-// Alternar Tipo y Moneda
+  modalBox.classList.add('active');
+}
+
+document.getElementById('form-box-edit').onsubmit = (e) => {
+  e.preventDefault();
+  const key = document.getElementById('box-key').value;
+  const amount = parseFloat(document.getElementById('box-amount').value) || 0;
+  const date = document.getElementById('box-date').value;
+
+  const data = { amount, date };
+  localStorage.setItem(`box_${key}`, JSON.stringify(data));
+
+  updateBoxUI(key, amount, date);
+  modalBox.classList.remove('active');
+};
+
+function loadBoxData() {
+  ['Alquiler', 'Comida', 'Servicios'].forEach(key => {
+    const saved = JSON.parse(localStorage.getItem(`box_${key}`) || '{}');
+    if (saved.amount !== undefined) {
+      updateBoxUI(key, saved.amount, saved.date);
+    }
+  });
+}
+
+function updateBoxUI(key, amount, date) {
+  const map = { 'Alquiler': 'rent', 'Comida': 'food', 'Servicios': 'services' };
+  const target = map[key];
+  if (target) {
+    document.getElementById(`env-${target}`).innerText = `$${amount.toFixed(2)}`;
+    document.getElementById(`date-${target}`).innerText = date ? `Vence: ${date}` : 'Sin fecha';
+  }
+}
+
+// Ocultar / Mostrar Ahorro
+function toggleSavingsMask() {
+  isSavingsMasked = !isSavingsMasked;
+  const el = document.getElementById('env-crypto');
+  const btn = document.getElementById('btn-toggle-eye');
+  if (isSavingsMasked) {
+    el.innerText = '****';
+    btn.innerText = '👁️';
+  } else {
+    el.innerText = `$${realSavingsVal.toFixed(2)}`;
+    btn.innerText = '🙈';
+  }
+}
+
+// Selector de tipo y moneda
 document.querySelectorAll('.btn-type').forEach(btn => {
   btn.onclick = (e) => {
     document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('active'));
@@ -131,9 +182,20 @@ function updateCategoryDropdown() {
     opt.innerText = c.label;
     catSelect.appendChild(opt);
   });
+  checkSpecialCategory();
 }
 
-// Conversión Dinámica
+function checkSpecialCategory() {
+  const cat = document.getElementById('category').value;
+  const creditBox = document.getElementById('credit-options');
+  if (['Cashea', 'Crece', 'Deuda-Persona'].includes(cat)) {
+    creditBox.style.display = 'flex';
+  } else {
+    creditBox.style.display = 'none';
+  }
+}
+
+// Conversión rápida
 document.getElementById('amount').oninput = updateConvertedPreview;
 
 function updateConvertedPreview() {
@@ -146,45 +208,12 @@ function updateConvertedPreview() {
   }
 }
 
-// Guardar Configuración del Planificador (Tuerquita ⚙️)
-document.getElementById('form-config').onsubmit = (e) => {
-  e.preventDefault();
-  configData.payDate = document.getElementById('config-pay-date').value;
-  configData.amount = parseFloat(document.getElementById('config-pay-amount').value) || 0;
-  configData.pRent = parseFloat(document.getElementById('perc-rent').value) || 0;
-  configData.pFood = parseFloat(document.getElementById('perc-food').value) || 0;
-  configData.pServices = parseFloat(document.getElementById('perc-services').value) || 0;
-  configData.pCrypto = parseFloat(document.getElementById('perc-crypto').value) || 0;
-
-  localStorage.setItem('duo_config', JSON.stringify(configData));
-  applyConfig();
-  modalConfig.classList.remove('active');
-};
-
-function loadConfig() {
-  const saved = localStorage.getItem('duo_config');
-  if (saved) {
-    configData = JSON.parse(saved);
-    applyConfig();
-  }
-}
-
-function applyConfig() {
-  if (configData.payDate) {
-    document.getElementById('planner-title').innerText = `📅 Plan de Cobro (${configData.payDate})`;
-  }
-  const base = configData.amount;
-  document.getElementById('env-rent').innerText = `$${(base * (configData.pRent / 100)).toFixed(2)}`;
-  document.getElementById('env-food').innerText = `$${(base * (configData.pFood / 100)).toFixed(2)}`;
-  document.getElementById('env-services').innerText = `$${(base * (configData.pServices / 100)).toFixed(2)}`;
-  document.getElementById('env-crypto').innerText = `$${(base * (configData.pCrypto / 100)).toFixed(2)}`;
-}
-
-// Escuchar Firestore en Tiempo Real
+// Escuchar Firebase
 function listenMovementsRealtime() {
   db.collection('movements').orderBy('date', 'desc').onSnapshot(snapshot => {
     let totalInc = 0;
     let totalExp = 0;
+    let savingsAcc = 0;
     const catTotals = {};
 
     const listEl = document.getElementById('movements-list');
@@ -194,6 +223,10 @@ function listenMovementsRealtime() {
       const item = doc.data();
       const docId = doc.id;
       const amountUSD = item.currency === 'VES' ? (item.amount / bcvRate) : item.amount;
+
+      if (item.category === 'Ahorro-Deposit') {
+        savingsAcc += amountUSD;
+      }
 
       if (item.type === 'income') {
         totalInc += amountUSD;
@@ -233,6 +266,11 @@ function listenMovementsRealtime() {
       listEl.appendChild(li);
     });
 
+    realSavingsVal = savingsAcc;
+    if (!isSavingsMasked) {
+      document.getElementById('env-crypto').innerText = `$${realSavingsVal.toFixed(2)}`;
+    }
+
     const balanceUSD = totalInc - totalExp;
     document.getElementById('total-balance').innerText = `$${balanceUSD.toFixed(2)}`;
     document.getElementById('total-balance-ves').innerText = `≈ ${(balanceUSD * bcvRate).toFixed(2)} Bs.`;
@@ -243,7 +281,7 @@ function listenMovementsRealtime() {
   });
 }
 
-// Marcar como Pagado y Eliminar
+// Pagar o Eliminar
 async function markAsPaid(id) {
   await db.collection('movements').doc(id).update({ status: 'Pagado' });
 }
@@ -254,7 +292,7 @@ async function deleteItem(id) {
   }
 }
 
-// Guardar Movimiento
+// Guardar Movimiento con Cuotas / Financiamientos
 document.getElementById('form-movement').onsubmit = async (e) => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('amount').value);
@@ -266,6 +304,10 @@ document.getElementById('form-movement').onsubmit = async (e) => {
   const status = document.getElementById('payment-status').value;
   const dueDate = document.getElementById('due-date').value;
 
+  const downPayment = parseFloat(document.getElementById('down-payment').value) || 0;
+  const installmentsCount = parseInt(document.getElementById('installments-count').value) || 0;
+  const totalRepay = parseFloat(document.getElementById('total-repay').value) || 0;
+
   let imageUrl = '';
   if (fileInput.files.length > 0) {
     try {
@@ -274,7 +316,7 @@ document.getElementById('form-movement').onsubmit = async (e) => {
       const snapshot = await storageRef.put(file);
       imageUrl = await snapshot.ref.getDownloadURL();
     } catch (err) {
-      console.error("Error al subir imagen:", err);
+      console.error("Error subiendo imagen:", err);
     }
   }
 
@@ -287,15 +329,17 @@ document.getElementById('form-movement').onsubmit = async (e) => {
     paidBy: currentType === 'expense' ? paidBy : null,
     status: currentType === 'expense' ? status : null,
     dueDate: dueDate || null,
+    creditDetails: { downPayment, installmentsCount, totalRepay },
     imageUrl,
     date: new Date()
   });
 
   document.getElementById('form-movement').reset();
+  document.getElementById('credit-options').style.display = 'none';
   modal.classList.remove('active');
 };
 
-// Gráficos Animados Chart.js
+// Gráficos Animados
 function initChart() {
   const ctx = document.getElementById('expensesChart').getContext('2d');
   expensesChart = new Chart(ctx, {
