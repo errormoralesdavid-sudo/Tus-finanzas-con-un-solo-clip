@@ -3,85 +3,139 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finanzas Duo App</title>
+  <title>Finanzas Duo SuperApp</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#6366f1">
+  <!-- Chart.js para Gráficos Animados -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <header class="top-bar">
-    <h1>Finanzas Duo</h1>
-    <div id="user-status">Conectando...</div>
+  <!-- Fondo animado con gradientes de cristal -->
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <header class="top-bar glass">
+    <div class="logo-area">
+      <div class="pulse-indicator"></div>
+      <h1>Finanzas Duo <span>Pro</span></h1>
+    </div>
+    <div class="rate-badge glass" id="rate-badge">
+      <span>🇻🇪 BCV:</span> <strong id="bcv-rate">Cargando...</strong>
+    </div>
   </header>
 
   <main class="content">
-    <!-- Panel Resumen -->
-    <section class="card balance-card">
-      <h2>Balance Total</h2>
+    <!-- Balance Principal con animación Glassmorphism -->
+    <section class="card balance-card glass">
+      <h2>Balance Total (USD)</h2>
       <div class="total-amount" id="total-balance">$0.00</div>
+      <div class="total-ves" id="total-balance-ves">≈ 0.00 Bs.</div>
+      
       <div class="balance-details">
-        <div class="income">▲ Ingresos: <span id="total-income">$0.00</span></div>
-        <div class="expense">▼ Gastos: <span id="total-expense">$0.00</span></div>
+        <div class="income-box">
+          <span class="icon">▲</span>
+          <div>
+            <p>Ingresos</p>
+
+            <strong id="total-income">$0.00</strong>
+          </div>
+        </div>
+        <div class="expense-box">
+          <span class="icon">▼</span>
+          <div>
+            <p>Gastos</p>
+            <strong id="total-expense">$0.00</strong>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Sección Modo Pareja -->
-    <section class="card pair-section">
-      <h3>Sincronización en Pareja</h3>
-      <p>Comparte tu código o ingresa el de tu pareja para vincular finanzas.</p>
+    <!-- Vincular Pareja en Tiempo Real -->
+    <section class="card pair-section glass">
+      <div class="section-title">
+        <h3>⚡ Modo Pareja en Vivo</h3>
+        <span class="badge-live">Realtime</span>
+      </div>
       <div class="pair-controls">
-        <div class="code-box">
+        <div class="code-box glass">
           <span>Tu Código:</span>
-          <strong id="my-pair-code">------</strong>
+          <strong id="my-pair-code">---</strong>
         </div>
         <div class="input-group">
           <input type="text" id="partner-code-input" placeholder="Código de pareja">
-          <button id="btn-link-partner">Vincular</button>
+          <button id="btn-link-partner" class="btn-glow">Vincular</button>
         </div>
       </div>
     </section>
 
-    <!-- Lista de Movimientos -->
-    <section class="card movements-section">
-      <h3>Últimos Movimientos</h3>
+    <!-- Gráficos Animados -->
+    <section class="card chart-section glass">
+      <h3>📊 Distribución de Gastos</h3>
+      <div class="chart-container">
+        <canvas id="expensesChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Historial de Movimientos -->
+    <section class="card movements-section glass">
+      <h3>📜 Historial Reciente</h3>
       <ul id="movements-list" class="movements-list">
-        <!-- Se cargan dinámicamente -->
+        <!-- Se genera en vivo con animaciones -->
       </ul>
     </section>
   </main>
 
-  <!-- Botón Flotante para Agregar -->
-  <button class="fab" id="btn-open-modal">+</button>
+  <!-- Botón Flotante Animado -->
+  <button class="fab btn-glow" id="btn-open-modal">+</button>
 
   <!-- Modal Nuevo Movimiento -->
   <div class="modal" id="modal-movement">
-    <div class="modal-content card">
-      <h3>Nuevo Movimiento</h3>
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h3>Registrar Movimiento</h3>
+        <button id="btn-close-modal" class="btn-close">&times;</button>
+      </div>
       <form id="form-movement">
-        <div class="type-selector">
+        <div class="type-selector glass">
           <button type="button" class="btn-type active" data-type="expense">Gasto</button>
           <button type="button" class="btn-type" data-type="income">Ingreso</button>
         </div>
+
+        <div class="currency-toggle glass">
+          <label>Moneda del registro:</label>
+          <div class="toggle-options">
+            <button type="button" class="btn-curr active" data-curr="VES">🇻🇪 Bolívares (Bs)</button>
+            <button type="button" class="btn-curr" data-curr="USD">💵 Dólares ($)</button>
+          </div>
+        </div>
         
-        <input type="number" step="0.01" id="amount" placeholder="Monto" required>
-        <input type="text" id="concept" placeholder="Concepto (ej. Compras super)" required>
+        <div class="input-container">
+          <input type="number" step="0.01" id="amount" placeholder="Monto" required>
+          <div class="converted-preview" id="converted-preview">≈ $0.00 USD</div>
+        </div>
+
+        <input type="text" id="concept" placeholder="Concepto (ej: Automercado, Barbería)" required>
         
         <select id="category">
-          <option value="Comida">Comida</option>
-          <option value="Servicios">Servicios</option>
-          <option value="Transporte">Transporte</option>
-          <option value="Ocio">Ocio</option>
-          <option value="Otros">Otros</option>
+          <option value="Comida">🛒 Comida / Mercado</option>
+          <option value="Servicios">💡 Servicios / Facturas</option>
+          <option value="Transporte">🚌 Transporte / Gasolina</option>
+          <option value="Ocio">🎉 Ocio / Salidas</option>
+          <option value="Salud">💊 Salud / Medicina</option>
+          <option value="Otros">📦 Otros</option>
         </select>
 
-        <label for="receipt-image" class="file-label">Adjuntar Imagen / Comprobante</label>
+        <label for="receipt-image" class="file-label glass">
+          📸 Adjuntar Comprobante / Foto
+        </label>
         <input type="file" id="receipt-image" accept="image/*">
 
-        <div class="modal-actions">
-          <button type="button" id="btn-close-modal" class="btn-secondary">Cancelar</button>
-          <button type="submit" class="btn-primary">Guardar</button>
-        </div>
+        <button type="submit" class="btn-primary btn-glow">Guardar Movimiento</button>
       </form>
     </div>
   </div>
