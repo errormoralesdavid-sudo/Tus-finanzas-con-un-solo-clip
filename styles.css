@@ -104,7 +104,6 @@ body {
 .income-box .icon { color: var(--success); }
 .expense-box .icon { color: var(--danger); }
 
-/* Planner Sobres */
 .section-header { display: flex; justify-content: space-between; align-items: center; }
 .subtitle { font-size: 0.8rem; color: #94a3b8; margin: 6px 0 12px 0; }
 .envelope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -113,7 +112,7 @@ body {
 .envelope-card strong { font-size: 1.1rem; color: #f8fafc; }
 
 .pair-controls { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-.code-box { padding: 10px 14px; display: flex; justify-content: space-between; }
+.code-box { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
 .input-group { display: flex; gap: 8px; }
 
 input, select {
@@ -134,6 +133,11 @@ button { cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px;
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.03);
 }
+
+.item-actions { display: flex; align-items: center; gap: 6px; }
+.btn-action { padding: 4px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; }
+.btn-pay { background: var(--success); color: white; }
+.btn-delete { background: var(--danger); color: white; }
 
 .badge-status {
   font-size: 0.65rem; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; margin-left: 4px;
