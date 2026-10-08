@@ -1,0 +1,16 @@
+{
+  "short_name": "FinanzasDuo",
+  "name": "Finanzas Duo App",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2845/2845722.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait"
+}
