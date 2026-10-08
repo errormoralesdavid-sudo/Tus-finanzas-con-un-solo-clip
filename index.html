@@ -3,16 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finanzas Duo SuperApp</title>
+  <title>Finanzas Duo SuperApp Pro</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6366f1">
-  <!-- Chart.js para Gráficos Animados -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- Fondo animado con gradientes de cristal -->
   <div class="bg-blobs">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
@@ -24,15 +22,15 @@
       <div class="pulse-indicator"></div>
       <h1>Finanzas Duo <span>Pro</span></h1>
     </div>
-    <div class="rate-badge glass" id="rate-badge">
+    <div class="rate-badge glass">
       <span>🇻🇪 BCV:</span> <strong id="bcv-rate">Cargando...</strong>
     </div>
   </header>
 
   <main class="content">
-    <!-- Balance Principal con animación Glassmorphism -->
+    <!-- Balance Principal -->
     <section class="card balance-card glass">
-      <h2>Balance Total (USD)</h2>
+      <h2>Balance Total Operativo</h2>
       <div class="total-amount" id="total-balance">$0.00</div>
       <div class="total-ves" id="total-balance-ves">≈ 0.00 Bs.</div>
       
@@ -41,7 +39,6 @@
           <span class="icon">▲</span>
           <div>
             <p>Ingresos</p>
-
             <strong id="total-income">$0.00</strong>
           </div>
         </div>
@@ -55,10 +52,37 @@
       </div>
     </section>
 
-    <!-- Vincular Pareja en Tiempo Real -->
+    <!-- Planificación de Cobro Sabatino y Sobres Digitales -->
+    <section class="card planner-section glass">
+      <div class="section-header">
+        <h3>📅 Planificador de Cobro (Sábados)</h3>
+        <button id="btn-config-pay" class="btn-sm glass">⚙️ Configurar</button>
+      </div>
+      <p class="subtitle">Desglose de tu ingreso semanal estimado:</p>
+      <div id="envelope-container" class="envelope-grid">
+        <div class="envelope-card glass">
+          <span>🏠 Alquiler</span>
+          <strong id="env-rent">$0.00</strong>
+        </div>
+        <div class="envelope-card glass">
+          <span>🛒 Comida</span>
+          <strong id="env-food">$0.00</strong>
+        </div>
+        <div class="envelope-card glass">
+          <span>💡 Servicios (Gas/Internet)</span>
+          <strong id="env-services">$0.00</strong>
+        </div>
+        <div class="envelope-card glass highlight">
+          <span>🪙 Binance USDT (Ahorro)</span>
+          <strong id="env-crypto">$0.00</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modo Pareja Realtime -->
     <section class="card pair-section glass">
       <div class="section-title">
-        <h3>⚡ Modo Pareja en Vivo</h3>
+        <h3>⚡ Sincronización en Vivo</h3>
         <span class="badge-live">Realtime</span>
       </div>
       <div class="pair-controls">
@@ -83,31 +107,29 @@
 
     <!-- Historial de Movimientos -->
     <section class="card movements-section glass">
-      <h3>📜 Historial Reciente</h3>
+      <h3>📜 Historial y Compromisos</h3>
       <ul id="movements-list" class="movements-list">
-        <!-- Se genera en vivo con animaciones -->
+        <!-- Cargado dinámicamente -->
       </ul>
     </section>
   </main>
 
-  <!-- Botón Flotante Animado -->
   <button class="fab btn-glow" id="btn-open-modal">+</button>
 
   <!-- Modal Nuevo Movimiento -->
   <div class="modal" id="modal-movement">
     <div class="modal-content glass">
       <div class="modal-header">
-        <h3>Registrar Movimiento</h3>
+        <h3 id="modal-title">Registrar Movimiento</h3>
         <button id="btn-close-modal" class="btn-close">&times;</button>
       </div>
       <form id="form-movement">
         <div class="type-selector glass">
-          <button type="button" class="btn-type active" data-type="expense">Gasto</button>
-          <button type="button" class="btn-type" data-type="income">Ingreso</button>
+          <button type="button" class="btn-type active" data-type="expense">Gasto / Pago</button>
+          <button type="button" class="btn-type" data-type="income">Ingreso / Cobro</button>
         </div>
 
         <div class="currency-toggle glass">
-          <label>Moneda del registro:</label>
           <div class="toggle-options">
             <button type="button" class="btn-curr active" data-curr="VES">🇻🇪 Bolívares (Bs)</button>
             <button type="button" class="btn-curr" data-curr="USD">💵 Dólares ($)</button>
@@ -119,23 +141,35 @@
           <div class="converted-preview" id="converted-preview">≈ $0.00 USD</div>
         </div>
 
-        <input type="text" id="concept" placeholder="Concepto (ej: Automercado, Barbería)" required>
+        <input type="text" id="concept" placeholder="Concepto (ej. Alquiler, Gas, Barbero, Sueldo)" required>
         
+        <!-- Categorías Dinámicas según Tipo -->
         <select id="category">
-          <option value="Comida">🛒 Comida / Mercado</option>
-          <option value="Servicios">💡 Servicios / Facturas</option>
-          <option value="Transporte">🚌 Transporte / Gasolina</option>
-          <option value="Ocio">🎉 Ocio / Salidas</option>
-          <option value="Salud">💊 Salud / Medicina</option>
-          <option value="Otros">📦 Otros</option>
+          <!-- Injected via JS -->
         </select>
 
+        <!-- Campos Exclusivos para Gastos -->
+        <div id="expense-extra-fields">
+          <div class="form-row">
+            <select id="paid-by">
+              <option value="Yo">Pagado por: Yo</option>
+              <option value="Pareja">Pagado por: Pareja</option>
+            </select>
+            <select id="payment-status">
+              <option value="Pagado">🟢 Pagado Completo</option>
+              <option value="Parcial">🟡 Pagado la Mitad / Abono</option>
+              <option value="Pendiente">🔴 Pendiente por Pagar</option>
+            </select>
+          </div>
+          <input type="date" id="due-date" title="Fecha límite de pago (Opcional)">
+        </div>
+
         <label for="receipt-image" class="file-label glass">
-          📸 Adjuntar Comprobante / Foto
+          📸 Adjuntar Comprobante / Recibo
         </label>
         <input type="file" id="receipt-image" accept="image/*">
 
-        <button type="submit" class="btn-primary btn-glow">Guardar Movimiento</button>
+        <button type="submit" class="btn-primary btn-glow">Guardar Registro</button>
       </form>
     </div>
   </div>
