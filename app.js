@@ -9,6 +9,7 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 const storage = firebase.storage();
 
 let bcvRate = 36.50; // Fallback
@@ -16,7 +17,16 @@ let currentType = 'expense';
 let currentCurrency = 'VES';
 let expensesChart = null;
 
-// Categorías según Tipo
+let userCode = '';
+let configData = {
+  payDate: '',
+  amount: 0,
+  pRent: 30,
+  pFood: 35,
+  pServices: 15,
+  pCrypto: 20
+};
+
 const categoriesExpense = [
   { val: 'Alquiler', label: '🏠 Alquiler / Vivienda' },
   { val: 'Comida', label: '🛒 Comida / Mercado' },
@@ -36,13 +46,26 @@ const categoriesIncome = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
+  initAuthAndPairCode();
   fetchBCVRate();
   initChart();
   updateCategoryDropdown();
   listenMovementsRealtime();
+  loadConfig();
 });
 
-// API Dólar Venezuela Robusta con Fallbacks
+// Autenticación anónima para generar Código Único de Pareja
+function initAuthAndPairCode() {
+  auth.signInAnonymously().then(res => {
+    userCode = res.user.uid.substring(0, 6).toUpperCase();
+    document.getElementById('my-pair-code').innerText = userCode;
+  }).catch(err => {
+    console.error("Error Auth:", err);
+    document.getElementById('my-pair-code').innerText = "DUO888";
+  });
+}
+
+// API Dólar Venezuela
 async function fetchBCVRate() {
   const apis = [
     'https://pydolarve.org/api/v1/dollar?page=bcv',
@@ -61,16 +84,21 @@ async function fetchBCVRate() {
         return;
       }
     } catch (e) {
-      console.warn('Cargando respaldo de API dólar...');
+      console.warn('Respaldando API dólar...');
     }
   }
   document.getElementById('bcv-rate').innerText = `${bcvRate.toFixed(2)} Bs.`;
 }
 
-// Modal Toggle
+// Control Modales
 const modal = document.getElementById('modal-movement');
+const modalConfig = document.getElementById('modal-config');
+
 document.getElementById('btn-open-modal').onclick = () => modal.classList.add('active');
 document.getElementById('btn-close-modal').onclick = () => modal.classList.remove('active');
+
+document.getElementById('btn-config-pay').onclick = () => modalConfig.classList.add('active');
+document.getElementById('btn-close-config').onclick = () => modalConfig.classList.remove('active');
 
 // Alternar Tipo y Moneda
 document.querySelectorAll('.btn-type').forEach(btn => {
@@ -79,10 +107,7 @@ document.querySelectorAll('.btn-type').forEach(btn => {
     e.target.classList.add('active');
     currentType = e.target.dataset.type;
     
-    // Mostrar/Ocultar campos exclusivos de gasto
-    const extraFields = document.getElementById('expense-extra-fields');
-    extraFields.style.display = currentType === 'expense' ? 'block' : 'none';
-
+    document.getElementById('expense-extra-fields').style.display = currentType === 'expense' ? 'block' : 'none';
     updateCategoryDropdown();
   };
 });
@@ -108,22 +133,54 @@ function updateCategoryDropdown() {
   });
 }
 
-// Conversión dinámica
+// Conversión Dinámica
 document.getElementById('amount').oninput = updateConvertedPreview;
 
 function updateConvertedPreview() {
   const val = parseFloat(document.getElementById('amount').value) || 0;
   const preview = document.getElementById('converted-preview');
   if (currentCurrency === 'VES') {
-    const inUSD = (val / bcvRate).toFixed(2);
-    preview.innerText = `≈ $${inUSD} USD`;
+    preview.innerText = `≈ $${(val / bcvRate).toFixed(2)} USD`;
   } else {
-    const inVES = (val * bcvRate).toFixed(2);
-    preview.innerText = `≈ ${inVES} Bs.`;
+    preview.innerText = `≈ ${(val * bcvRate).toFixed(2)} Bs.`;
   }
 }
 
-// Escuchar Firebase en tiempo real
+// Guardar Configuración del Planificador (Tuerquita ⚙️)
+document.getElementById('form-config').onsubmit = (e) => {
+  e.preventDefault();
+  configData.payDate = document.getElementById('config-pay-date').value;
+  configData.amount = parseFloat(document.getElementById('config-pay-amount').value) || 0;
+  configData.pRent = parseFloat(document.getElementById('perc-rent').value) || 0;
+  configData.pFood = parseFloat(document.getElementById('perc-food').value) || 0;
+  configData.pServices = parseFloat(document.getElementById('perc-services').value) || 0;
+  configData.pCrypto = parseFloat(document.getElementById('perc-crypto').value) || 0;
+
+  localStorage.setItem('duo_config', JSON.stringify(configData));
+  applyConfig();
+  modalConfig.classList.remove('active');
+};
+
+function loadConfig() {
+  const saved = localStorage.getItem('duo_config');
+  if (saved) {
+    configData = JSON.parse(saved);
+    applyConfig();
+  }
+}
+
+function applyConfig() {
+  if (configData.payDate) {
+    document.getElementById('planner-title').innerText = `📅 Plan de Cobro (${configData.payDate})`;
+  }
+  const base = configData.amount;
+  document.getElementById('env-rent').innerText = `$${(base * (configData.pRent / 100)).toFixed(2)}`;
+  document.getElementById('env-food').innerText = `$${(base * (configData.pFood / 100)).toFixed(2)}`;
+  document.getElementById('env-services').innerText = `$${(base * (configData.pServices / 100)).toFixed(2)}`;
+  document.getElementById('env-crypto').innerText = `$${(base * (configData.pCrypto / 100)).toFixed(2)}`;
+}
+
+// Escuchar Firestore en Tiempo Real
 function listenMovementsRealtime() {
   db.collection('movements').orderBy('date', 'desc').onSnapshot(snapshot => {
     let totalInc = 0;
@@ -135,6 +192,7 @@ function listenMovementsRealtime() {
 
     snapshot.forEach(doc => {
       const item = doc.data();
+      const docId = doc.id;
       const amountUSD = item.currency === 'VES' ? (item.amount / bcvRate) : item.amount;
 
       if (item.type === 'income') {
@@ -144,14 +202,13 @@ function listenMovementsRealtime() {
         catTotals[item.category] = (catTotals[item.category] || 0) + amountUSD;
       }
 
-      // Formato seguro de Fecha (Corrige 'undefined')
       let dateFormatted = 'Hoy';
       if (item.date && item.date.toDate) {
         dateFormatted = item.date.toDate().toLocaleDateString('es-VE');
       }
 
-      // Render ítem
       const li = document.createElement('li');
+      const isPend = item.type === 'expense' && item.status === 'Pendiente';
       const statusBadge = item.type === 'expense' 
         ? `<span class="badge-status status-${(item.status || 'pagado').toLowerCase()}">${item.status || 'Pagado'}</span>` 
         : '';
@@ -167,30 +224,37 @@ function listenMovementsRealtime() {
           <strong style="color:${item.type === 'income' ? '#10b981' : '#ef4444'}">
             ${item.type === 'income' ? '+' : '-'}$${amountUSD.toFixed(2)}
           </strong>
-          <p style="font-size:0.7rem; color:#64748b;">${item.amount} ${item.currency}</p>
+          <div class="item-actions">
+            ${isPend ? `<button onclick="markAsPaid('${docId}')" class="btn-action btn-pay">✓ Pagar</button>` : ''}
+            <button onclick="deleteItem('${docId}')" class="btn-action btn-delete">🗑️</button>
+          </div>
         </div>
       `;
       listEl.appendChild(li);
     });
 
-    // Saldos generales
     const balanceUSD = totalInc - totalExp;
     document.getElementById('total-balance').innerText = `$${balanceUSD.toFixed(2)}`;
     document.getElementById('total-balance-ves').innerText = `≈ ${(balanceUSD * bcvRate).toFixed(2)} Bs.`;
     document.getElementById('total-income').innerText = `$${totalInc.toFixed(2)}`;
     document.getElementById('total-expense').innerText = `$${totalExp.toFixed(2)}`;
 
-    // Sobres Digitales de Cobro (Cálculo Estimado)
-    document.getElementById('env-rent').innerText = `$${(totalInc * 0.30).toFixed(2)}`;
-    document.getElementById('env-food').innerText = `$${(totalInc * 0.35).toFixed(2)}`;
-    document.getElementById('env-services').innerText = `$${(totalInc * 0.15).toFixed(2)}`;
-    document.getElementById('env-crypto').innerText = `$${(totalInc * 0.20).toFixed(2)}`;
-
     updateChart(catTotals);
   });
 }
 
-// Guardar Movimiento en Firestore
+// Marcar como Pagado y Eliminar
+async function markAsPaid(id) {
+  await db.collection('movements').doc(id).update({ status: 'Pagado' });
+}
+
+async function deleteItem(id) {
+  if (confirm('¿Deseas eliminar este registro?')) {
+    await db.collection('movements').doc(id).delete();
+  }
+}
+
+// Guardar Movimiento
 document.getElementById('form-movement').onsubmit = async (e) => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('amount').value);
